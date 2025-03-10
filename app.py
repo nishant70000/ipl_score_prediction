@@ -1,459 +1,58 @@
-# %% [markdown]
-# # IPL Score Prediction using Machine Learning
-# 
-# This Machine Learning model adapts a Regression Approach to predict the score of the First Inning of an IPL Match.
-
-# %% [markdown]
-# # Import Necessary Libraries
-
-# %%
-# Importing Necessary Libraries
+import streamlit as st
 import pandas as pd
 import numpy as np
-
-
-# %% [markdown]
-# Load the dataset
-
-# %%
-#Importing dataset
-ipl_df = pd.read_csv('ipl_data.csv')
-print(f"Dataset successfully Imported of Shape : {ipl_df.shape}")
-
-# %% [markdown]
-# # Exploratory Data Analysis
-
-# %%
-# First 5 Columns Data
-ipl_df.head()
-
-# %%
-# Describing the ipl_dfset
-ipl_df.describe()
-
-# %%
-# Information about Each Column
-ipl_df.info()
-
-# %%
-# Number of Unique Values in each column
-ipl_df.nunique()
-
-# %%
-# ipl_df types of all Columns
-ipl_df.dtypes
-
-# %%
-#Wickets Distribution
-sns.displot(ipl_df['wickets'],kde=False,bins=10)
-plt.title("Wickets Distribution")
-
-plt.show()
-
-# %%
-#Runs Distribution
-sns.displot(ipl_df['total'],kde=False,bins=10)
-plt.title("Runs Distribution")
-
-plt.show()
-
-# %% [markdown]
-# # Data Cleaning
-
-# %% [markdown]
-# #### Removing Irrelevant Data colunms
-
-# %%
-# Names of all columns
-ipl_df.columns
-
-# %% [markdown]
-# Here, we can see that columns _['mid', 'date', 'venue', 'batsman', 'bowler', 'striker', 'non-striker']_ won't provide any relevant information for our model to train
-
-# %%
-irrelevant = ['mid', 'date', 'venue','batsman', 'bowler', 'striker', 'non-striker']
-print(f'Before Removing Irrelevant Columns : {ipl_df.shape}')
-ipl_df = ipl_df.drop(irrelevant, axis=1) # Drop Irrelevant Columns
-print(f'After Removing Irrelevant Columns : {ipl_df.shape}')
-ipl_df.head()
-
-# %% [markdown]
-# #### Keeping only Consistent Teams 
-# 
-
-# %%
-# Define Consistent Teams
-const_teams = ['Kolkata Knight Riders', 'Chennai Super Kings', 'Rajasthan Royals',
-              'Mumbai Indians', 'Kings XI Punjab', 'Royal Challengers Bangalore',
-              'Delhi Daredevils', 'Sunrisers Hyderabad']
-
-# %%
-print(f'Before Removing Inconsistent Teams : {ipl_df.shape}')
-ipl_df = ipl_df[(ipl_df['bat_team'].isin(const_teams)) & (ipl_df['bowl_team'].isin(const_teams))]
-print(f'After Removing Irrelevant Columns : {ipl_df.shape}')
-print(f"Consistent Teams : \n{ipl_df['bat_team'].unique()}")
-ipl_df.head()
-
-# %% [markdown]
-# #### Remove First 5 Overs of every match
-
-# %%
-print(f'Before Removing Overs : {ipl_df.shape}')
-ipl_df = ipl_df[ipl_df['overs'] >= 5.0]
-print(f'After Removing Overs : {ipl_df.shape}')
-ipl_df.head()
-
-# %% [markdown]
-# Plotting a Correlation Matrix of current data
-
-# %%
-from seaborn import heatmap
-heatmap(data=ipl_df.corr(), annot=True)
-
-# %% [markdown]
-# # Data Preprocessing and Encoding
-
-# %% [markdown]
-# #### Performing Label Encoding
-
-# %%
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-le = LabelEncoder()
-for col in ['bat_team', 'bowl_team']:
-  ipl_df[col] = le.fit_transform(ipl_df[col])
-ipl_df.head()
-
-# %% [markdown]
-# #### Performing One Hot Encoding and Column Transformation
-
-# %%
-from sklearn.compose import ColumnTransformer
-columnTransformer = ColumnTransformer([('encoder', 
-                                        OneHotEncoder(), 
-                                        [0, 1])], 
-                                      remainder='passthrough')
-
-# %%
-ipl_df = np.array(columnTransformer.fit_transform(ipl_df))
-
-# %% [markdown]
-# Save the Numpy Array in a new DataFrame with transformed columns
-
-# %%
-cols = ['batting_team_Chennai Super Kings', 'batting_team_Delhi Daredevils', 'batting_team_Kings XI Punjab',
-              'batting_team_Kolkata Knight Riders', 'batting_team_Mumbai Indians', 'batting_team_Rajasthan Royals',
-              'batting_team_Royal Challengers Bangalore', 'batting_team_Sunrisers Hyderabad',
-              'bowling_team_Chennai Super Kings', 'bowling_team_Delhi Daredevils', 'bowling_team_Kings XI Punjab',
-              'bowling_team_Kolkata Knight Riders', 'bowling_team_Mumbai Indians', 'bowling_team_Rajasthan Royals',
-              'bowling_team_Royal Challengers Bangalore', 'bowling_team_Sunrisers Hyderabad', 'runs', 'wickets', 'overs',
-       'runs_last_5', 'wickets_last_5', 'total']
-df = pd.DataFrame(ipl_df, columns=cols)
-
-# %%
-# Encoded Data
-df.head()
-
-# %% [markdown]
-# # Model Building
-
-# %% [markdown]
-# ## Prepare Train and Test Data
-
-# %%
-features = df.drop(['total'], axis=1)
-labels = df['total']
-
-# %%
+import matplotlib.pyplot as plt
+import seaborn as sns
+import sklearn
 from sklearn.model_selection import train_test_split
-train_features, test_features, train_labels, test_labels = train_test_split(features, labels, test_size=0.20, shuffle=True)
-print(f"Training Set : {train_features.shape}\nTesting Set : {test_features.shape}")
-
-# %% [markdown]
-# ## ML  Algorithms
-
-# %%
-models = dict()
-
-# %% [markdown]
-# #### 1. Decision Tree Regressor
-
-# %%
-from sklearn.tree import DecisionTreeRegressor
-tree = DecisionTreeRegressor()
-# Train Model
-tree.fit(train_features, train_labels)
-
-# %%
-# Evaluate Model
-train_score_tree = str(tree.score(train_features, train_labels) * 100)
-test_score_tree = str(tree.score(test_features, test_labels) * 100)
-print(f'Train Score : {train_score_tree[:5]}%\nTest Score : {test_score_tree[:5]}%')
-models["tree"] = test_score_tree
-
-# %%
-from sklearn.metrics import mean_absolute_error as mae, mean_squared_error as mse
-print("---- Decision Tree Regressor - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, tree.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, tree.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, tree.predict(test_features)))))
-
-# %% [markdown]
-# #### Linear Regression
-
-# %%
 from sklearn.linear_model import LinearRegression
-linreg = LinearRegression()
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# Load Dataset
+@st.cache_data
+def load_data():
+    df = pd.read_csv("ipl_data.csv")
+    return df
+
+df = load_data()
+
+# Streamlit UI
+st.title("IPL Score Predictor")
+st.write("This app predicts the first innings score of an IPL match based on historical data.")
+
+# Display Raw Data
+if st.checkbox("Show Raw Data"):
+    st.write(df.head())
+
+# Selecting Features for Prediction
+teams = df["batting_team"].unique()
+venue = df["venue"].unique()
+
+batting_team = st.selectbox("Select Batting Team", teams)
+bowling_team = st.selectbox("Select Bowling Team", teams)
+venue = st.selectbox("Select Venue", venue)
+wickets = st.slider("Wickets Fallen", 0, 10, 3)
+current_runs = st.number_input("Current Runs", min_value=0, max_value=250, value=50)
+over_number = st.slider("Over Number", 1, 20, 10)
+
+# Preprocessing
+X = df[["wickets", "current_runs", "over_number"]]  # Features
+y = df["total_score"]  # Target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
 # Train Model
-linreg.fit(train_features, train_labels)
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-# %%
-# Evaluate Model
-train_score_linreg = str(linreg.score(train_features, train_labels) * 100)
-test_score_linreg = str(linreg.score(test_features, test_labels) * 100)
-print(f'Train Score : {train_score_linreg[:5]}%\nTest Score : {test_score_linreg[:5]}%')
-models["linreg"] = test_score_linreg
+# Make Prediction
+if st.button("Predict Score"):
+    input_data = np.array([[wickets, current_runs, over_number]])
+    predicted_score = model.predict(input_data)[0]
+    st.success(f"Predicted Total Score: {int(predicted_score)}")
 
-# %%
-print("---- Linear Regression - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, linreg.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, linreg.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, linreg.predict(test_features)))))
-
-# %% [markdown]
-# #### Random Forest Regression
-
-# %%
-from sklearn.ensemble import RandomForestRegressor
-forest = RandomForestRegressor()
-# Train Model
-forest.fit(train_features, train_labels)
-
-# %%
-# Evaluate Model
-train_score_forest = str(forest.score(train_features, train_labels)*100)
-test_score_forest = str(forest.score(test_features, test_labels)*100)
-print(f'Train Score : {train_score_forest[:5]}%\nTest Score : {test_score_forest[:5]}%')
-models["forest"] = test_score_forest
-
-# %%
-print("---- Random Forest Regression - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, forest.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, forest.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, forest.predict(test_features)))))
-
-# %% [markdown]
-# #### Support Vector Machine
-
-# %%
-from sklearn.svm import SVR
-svm = SVR()
-# Train Model
-svm.fit(train_features, train_labels)
-
-# %%
-train_score_svm = str(svm.score(train_features, train_labels)*100)
-test_score_svm = str(svm.score(test_features, test_labels)*100)
-print(f'Train Score : {train_score_svm[:5]}%\nTest Score : {test_score_svm[:5]}%')
-models["svm"] = test_score_svm 
-
-# %%
-print("---- Support Vector Regression - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, svm.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, svm.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, svm.predict(test_features)))))
-
-# %% [markdown]
-# #### XGBoost
-
-# %%
-from xgboost import XGBRegressor
-xgb = XGBRegressor()
-# Train Model
-xgb.fit(train_features, train_labels)
-
-# %%
-train_score_xgb = str(xgb.score(train_features, train_labels)*100)
-test_score_xgb = str(xgb.score(test_features, test_labels)*100)
-print(f'Train Score : {train_score_xgb[:5]}%\nTest Score : {test_score_xgb[:5]}%')
-models["xgb"] = test_score_xgb
-
-# %%
-print("---- XGB Regression - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, xgb.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, xgb.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, xgb.predict(test_features)))))
-
-# %% [markdown]
-# KNR
-
-# %%
-from sklearn.neighbors import KNeighborsRegressor
-knr = KNeighborsRegressor()
-# Train Model
-knr.fit(train_features, train_labels)
-
-# %%
-train_score_knr = str(knr.score(train_features, train_labels)*100)
-test_score_knr = str(knr.score(test_features, test_labels)*100)
-print(f'Train Score : {train_score_knr[:5]}%\nTest Score : {test_score_knr[:5]}%')
-models["knr"] = test_score_knr
-
-# %%
-print("---- KNR - Model Evaluation ----")
-print("Mean Absolute Error (MAE): {}".format(mae(test_labels, knr.predict(test_features))))
-print("Mean Squared Error (MSE): {}".format(mse(test_labels, knr.predict(test_features))))
-print("Root Mean Squared Error (RMSE): {}".format(np.sqrt(mse(test_labels, knr.predict(test_features)))))
-
-# %% [markdown]
-# ## Best Model 
-
-# %%
-import matplotlib.pyplot as plt 
-model_names = list(models.keys())
-accuracy = list(map(float, models.values()))
-# creating the bar plot
-plt.bar(model_names, accuracy)
-
-# %% [markdown]
-# From above, we can see that **Random Forest** performed the best, closely followed by **Decision Tree** and **KNR**. So we will be choosing Random Forest for the final model
-
-# %% [markdown]
-# # Predictions
-
-# %%
-def score_predict(batting_team, bowling_team, runs, wickets, overs, runs_last_5, wickets_last_5, model=forest):
-  prediction_array = []
-  # Batting Team
-  if batting_team == 'Chennai Super Kings':
-    prediction_array = prediction_array + [1,0,0,0,0,0,0,0]
-  elif batting_team == 'Delhi Daredevils':
-    prediction_array = prediction_array + [0,1,0,0,0,0,0,0]
-  elif batting_team == 'Kings XI Punjab':
-    prediction_array = prediction_array + [0,0,1,0,0,0,0,0]
-  elif batting_team == 'Kolkata Knight Riders':
-    prediction_array = prediction_array + [0,0,0,1,0,0,0,0]
-  elif batting_team == 'Mumbai Indians':
-    prediction_array = prediction_array + [0,0,0,0,1,0,0,0]
-  elif batting_team == 'Rajasthan Royals':
-    prediction_array = prediction_array + [0,0,0,0,0,1,0,0]
-  elif batting_team == 'Royal Challengers Bangalore':
-    prediction_array = prediction_array + [0,0,0,0,0,0,1,0]
-  elif batting_team == 'Sunrisers Hyderabad':
-    prediction_array = prediction_array + [0,0,0,0,0,0,0,1]
-  # Bowling Team
-  if bowling_team == 'Chennai Super Kings':
-    prediction_array = prediction_array + [1,0,0,0,0,0,0,0]
-  elif bowling_team == 'Delhi Daredevils':
-    prediction_array = prediction_array + [0,1,0,0,0,0,0,0]
-  elif bowling_team == 'Kings XI Punjab':
-    prediction_array = prediction_array + [0,0,1,0,0,0,0,0]
-  elif bowling_team == 'Kolkata Knight Riders':
-    prediction_array = prediction_array + [0,0,0,1,0,0,0,0]
-  elif bowling_team == 'Mumbai Indians':
-    prediction_array = prediction_array + [0,0,0,0,1,0,0,0]
-  elif bowling_team == 'Rajasthan Royals':
-    prediction_array = prediction_array + [0,0,0,0,0,1,0,0]
-  elif bowling_team == 'Royal Challengers Bangalore':
-    prediction_array = prediction_array + [0,0,0,0,0,0,1,0]
-  elif bowling_team == 'Sunrisers Hyderabad':
-    prediction_array = prediction_array + [0,0,0,0,0,0,0,1]
-  prediction_array = prediction_array + [runs, wickets, overs, runs_last_5, wickets_last_5]
-  prediction_array = np.array([prediction_array])
-  pred = model.predict(prediction_array)
-  return int(round(pred[0]))
-
-# %% [markdown]
-# ### Test 1
-# - Batting Team : **Delhi Daredevils**
-# - Bowling Team : **Chennai Super Kings**
-# - Final Score : **147/9**
-
-# %%
-batting_team='Delhi Daredevils'
-bowling_team='Chennai Super Kings'
-score = score_predict(batting_team, bowling_team, overs=10.2, runs=68, wickets=3, runs_last_5=29, wickets_last_5=1)
-print(f'Predicted Score : {score} || Actual Score : 147')
-
-# %% [markdown]
-# ### Test 2
-# - Batting Team : **Mumbai Indians**
-# - Bowling Team : **Kings XI Punjab**
-# - Final Score : **176/7**
-
-# %%
-batting_team='Mumbai Indians'
-bowling_team='Kings XI Punjab'
-score = score_predict(batting_team, bowling_team, overs=12.3, runs=113, wickets=2, runs_last_5=55, wickets_last_5=0)
-print(f'Predicted Score : {score} || Actual Score : 176')
-
-# %% [markdown]
-# ### Test 3
-# - Batting Team : **Kings XI Punjab**
-# - Bowling Team : **Rajasthan Royals**
-# - Final Score : **185/4**
-# <br/>
-# These Test Was done before the match and final score were added later.
-
-# %%
-batting_team="Kings XI Punjab"
-bowling_team="Rajasthan Royals"
-score =score_predict(batting_team, bowling_team, overs=14.0, runs=118, wickets=1, runs_last_5=45, wickets_last_5=0)
-print(f'Predicted Score : {score} || Actual Score : 185')
-
-# %% [markdown]
-# ### Test 4
-# - Batting Team : **Kolkata Knight Riders**
-# - Bowling Team : **Chennai Super Kings**
-# - Final Score : **172/5**
-
-# %%
-batting_team="Kolkata Knight Riders"
-bowling_team="Chennai Super Kings"
-score = score_predict(batting_team, bowling_team, overs=18.0, runs=150, wickets=4, runs_last_5=57, wickets_last_5=1)
-print(f'Predicted Score : {score} || Actual Score : 172')
-
-# %% [markdown]
-# ### Test 5 
-# - Batting Team : **Delhi Daredevils**
-# - Bowling Team : **Mumbai Indians**
-# - Final Score : **110/7**
-
-# %%
-batting_team='Delhi Daredevils'
-bowling_team='Mumbai Indians'
-score = score_predict(batting_team, bowling_team, overs=18.0, runs=96, wickets=8, runs_last_5=18, wickets_last_5=4)
-print(f'Predicted Score : {score} || Actual Score : 110')
-
-# %% [markdown]
-# ### Test 6
-# - Batting Team : **Kings XI Punjab**
-# - Bowling Team : **Chennai Super Kings**
-# - Final Score : **153/9**
-
-# %%
-batting_team='Kings XI Punjab'
-bowling_team='Chennai Super Kings'
-score = score_predict(batting_team, bowling_team, overs=18.0, runs=129, wickets=6, runs_last_5=34, wickets_last_5=2)
-print(f'Predicted Score : {score} || Actual Score : 153')
-
-# %% [markdown]
-# ### Test 7
-# - Batting Team : **Sunrisers Hyderabad**
-# - Bowling Team : **Royal Challengers Banglore**
-# - Final Score : **146/10**
-
-# %%
-batting_team='Sunrisers Hyderabad'
-bowling_team='Royal Challengers Bangalore'
-score = score_predict(batting_team, bowling_team, overs=10.5, runs=67, wickets=3, runs_last_5=29, wickets_last_5=1)
-print(f'Predicted Score : {score} || Actual Score : 146')
-
-# %% [markdown]
-# # Export Model
-
-# %%
-import pickle
-filename = "ml_model.pkl"
-pickle.dump(forest, open(filename, "wb"))
-
-
+# Display Model Performance
+st.subheader("Model Performance")
+y_pred = model.predict(X_test)
+st.write(f"Mean Absolute Error: {mean_absolute_error(y_test, y_pred):.2f}")
+st.write(f"Mean Squared Error: {mean_squared_error(y_test, y_pred):.2f}")
+st.write(f"R² Score: {r2_score(y_test, y_pred):.2f}")
