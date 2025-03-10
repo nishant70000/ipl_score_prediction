@@ -20,9 +20,6 @@ def load_data():
 
 df = load_data()
 
-# Debug: Show available columns
-st.write("### Debug: Columns in dataset:", df.columns.tolist())
-
 # Check if dataset is empty
 if df.empty:
     st.error("Dataset could not be loaded. Please check 'ipl_data.csv' file!")
@@ -33,7 +30,7 @@ expected_columns = ["bat_team", "bowl_team", "venue", "wickets", "overs", "runs"
 missing_columns = [col for col in expected_columns if col not in df.columns]
 
 if missing_columns:
-    st.error(f"⚠️ Missing columns in dataset: {missing_columns}")
+    st.error("⚠️ The dataset is missing some necessary columns. Please check your CSV file.")
     st.stop()
 
 # Streamlit UI
@@ -44,14 +41,14 @@ st.write("This app predicts the first innings score of an IPL match based on his
 teams = df["bat_team"].unique()
 venues = df["venue"].unique()
 
-batting_team = st.selectbox("Select Batting Team", teams)
-bowling_team = st.selectbox("Select Bowling Team", teams)
-venue = st.selectbox("Select Venue", venues)
-wickets = st.slider("Wickets Fallen", 0, 10, 3)
-current_runs = st.number_input("Current Runs", min_value=0, max_value=250, value=50)
-overs = st.slider("Over Number", 1, 20, 10)
-runs_last_5 = st.number_input("Runs in Last 5 Overs", min_value=0, max_value=100, value=30)
-wickets_last_5 = st.slider("Wickets in Last 5 Overs", 0, 5, 1)
+batting_team = st.selectbox("🏏 Select Batting Team", teams)
+bowling_team = st.selectbox("🎯 Select Bowling Team", teams)
+venue = st.selectbox("📍 Select Venue", venues)
+wickets = st.slider("🛑 Wickets Fallen", 0, 10, 3)
+current_runs = st.number_input("🏃 Current Runs", min_value=0, max_value=250, value=50)
+overs = st.slider("⏳ Over Number", 1, 20, 10)
+runs_last_5 = st.number_input("🔥 Runs in Last 5 Overs", min_value=0, max_value=100, value=30)
+wickets_last_5 = st.slider("❌ Wickets in Last 5 Overs", 0, 5, 1)
 
 # Prepare Data for Training
 X = df[["wickets", "overs", "runs", "runs_last_5", "wickets_last_5"]]
@@ -63,10 +60,10 @@ model = LinearRegression()
 model.fit(X_train, y_train)
 
 # Make Prediction
-if st.button("Predict Score"):
+if st.button("🔮 Predict Score"):
     input_data = np.array([[wickets, overs, current_runs, runs_last_5, wickets_last_5]])
     predicted_score = model.predict(input_data)[0]
-    st.success(f"🎯 Predicted Total Score: {int(predicted_score)}")
+    st.success(f"🏆 Predicted Total Score: {int(predicted_score)}")
 
 # Model Performance
 st.subheader("📊 Model Performance")
